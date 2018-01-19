@@ -1,9 +1,12 @@
 import preprocess
-from nltk.stem import PorterStemmer
-from tqdm import tqdm
 import json
 import os
 import math
+import matplotlib.pyplot as plt
+
+from nltk.stem import PorterStemmer
+from wordcloud import WordCloud
+from tqdm import tqdm
 
 
 class InvertedIndex:
@@ -17,7 +20,7 @@ class InvertedIndex:
         documentNames = []
         for root, dirs, files in os.walk(directory):
             for file in files:
-                documentNames.append(file)
+                documentNames.append(os.path.join(root, file))
         self.allDocuments = set(documentNames)
 
     def dumpJSON(self, destination):
@@ -31,7 +34,7 @@ class InvertedIndex:
             for file in tqdm(files):
                 dataRecovered = preprocess.readFile(os.path.join(root, file))
                 if dataRecovered:
-                    documentNames.append(file)
+                    documentNames.append(os.path.join(root, file))
                     documents.append(dataRecovered)
         self.allDocuments = set(documentNames)
         self.construct(documents, documentNames)
@@ -85,22 +88,27 @@ class InvertedIndex:
                 return index + skipLength
         return False
 
-    def XandY(self, x, y):
+    def XandY(self, x, y, sLength=None):
         # Implement skip pointers
         x_index = self.stemmer.stem(x.lower())
         y_index = self.stemmer.stem(y.lower())
         x_candidates = sorted(self.index[x_index]['documents'])
         y_candidates = sorted(self.index[y_index]['documents'])
-        skipXlength = int(math.sqrt(self.index[x_index]['frequency']))
-        skipYlength = int(math.sqrt(self.index[y_index]['frequency']))
+        if not sLength:
+            skipXlength = int(math.sqrt(self.index[x_index]['frequency']))
+            skipYlength = int(math.sqrt(self.index[y_index]['frequency']))
+        else:
+            skipXlength = sLength
+            skipYlength = sLength
         pointerX, pointerY = 0, 0
         candidates = []
+        numComparisons = 0
         while pointerX < self.index[x_index]['frequency'] and \
             pointerY < self.index[y_index]['frequency']:
-                # print(pointerX, pointerY)
+                numComparisons += 1
                 skipX = self.skipPointerExists(pointerX, skipXlength, \
                     self.index[x_index]['frequency'])
-                skipY = self.skipPointerExists(pointerX, skipYlength, \
+                skipY = self.skipPointerExists(pointerY, skipYlength, \
                     self.index[y_index]['frequency'])
                 if x_candidates[pointerX] == y_candidates[pointerY]:
                     candidates.append(x_candidates[pointerX])
@@ -112,6 +120,7 @@ class InvertedIndex:
                             while(x_candidates[skipX] <=
                                 y_candidates[pointerY] and skipX):
                                 pointerX = skipX
+                                numComparisons += 1
                                 skipX = self.skipPointerExists(pointerX, \
                                   skipXlength,self.index[x_index]['frequency'])
                         else:
@@ -121,16 +130,27 @@ class InvertedIndex:
                 else:
                     if skipY:
                         if x_candidates[pointerX] >= y_candidates[skipY]:
-                            while(x_candidates[pointerX] <=
+                            while(x_candidates[pointerX] >=
                                 y_candidates[skipY] and skipY):
                                 pointerY = skipY
+                                numComparisons += 1
                                 skipY = self.skipPointerExists(pointerY, \
                                   skipYlength,self.index[y_index]['frequency'])
                         else:
                             pointerY += 1
                     else:
                         pointerY += 1
-        return candidates
+        return candidates, numComparisons
+
+
+def generateWordcloud(invertedIndex):
+    frequencyDict = {}
+    for key in invertedIndex.index:
+        frequencyDict[key] = invertedIndex.index[key]['frequency']
+    wordcloud = WordCloud().generate_from_frequencies(frequencyDict)
+    plt.imshow(wordcloud, interpolation="bilinear")
+    plt.axis("off")
+    plt.savefig('wordCloud.png')
 
 
 if __name__ == "__main__":
@@ -141,11 +161,25 @@ if __name__ == "__main__":
     else:
         ii.construct_index(sys.argv[1])
         ii.dumpJSON(sys.argv[2])
-    x = ii.XandY("read","book")
-    print("read AND book : ", len(x))
-    x = ii.XorY("read","book")
-    print("read OR book : ", len(x))
-    x = ii.XandnotY("read","book")
-    print("read AND NOT book : ", len(x))
-    x = ii.XornotY("read","book")
-    print("read OR NOT book : ", len(x))
+    generateWordcloud(ii)
+    while True:
+        print("Enter query terms (space separated)")
+        try:
+            x, y = input().split(' ')
+        except:
+            print("Exiting tool")
+            break
+        print("Enter operation (AND:1, OR:2, AND NOT:3, OR NOT:4)")
+        choice = int(input())
+        if choice == 1:
+            answer = ii.XandY(x,y)
+            print(x," AND ",y,": ", len(answer[0]), ", comparisons : ",answer[1])
+        elif choice == 2:
+            answer = ii.XorY(x,y)
+            print(x," OR ",y," : ", len(answer))
+        elif choice == 3:
+            answer = ii.XandnotY(x,y)
+            print(x," AND NOT ",y," : ", len(answer))
+        elif choice == 4:
+            answer = ii.XornotY(x,y)
+            print(x," OR NOT ",y," : ", len(answer))

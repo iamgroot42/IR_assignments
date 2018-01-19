@@ -1,2 +1,5 @@
 *.zip
-
+*json
+20_newsgroups/*
+*.pdf
+*.png
