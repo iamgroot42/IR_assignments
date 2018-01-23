@@ -56,30 +56,34 @@ class InvertedIndex:
     def XorY(self, x, y):
         x_index = self.stemmer.stem(x.lower())
         y_index = self.stemmer.stem(y.lower())
-        candidates = list(set(self.index[x_index]['documents'])
-            | set(self.index[y_index]['documents']))
-        return candidates
-
-    def XandYslow(self, x, y):
-        x_index = self.stemmer.stem(x.lower())
-        y_index = self.stemmer.stem(y.lower())
-        candidates = list(set(self.index[x_index]['documents'])
-            & set(self.index[y_index]['documents']))
+        candidates = []
+        for x in self.index[x_index]['documents']:
+            if x not in candidates:
+                candidates.append(x)
+        for y in self.index[y_index]['documents']:
+            if y not in candidates:
+                candidates.append(y)
         return candidates
 
     def XandnotY(self, x, y):
         x_index = self.stemmer.stem(x.lower())
         y_index = self.stemmer.stem(y.lower())
-        candidates = list(set(self.index[x_index]['documents'])
-            - set(self.index[y_index]['documents']))
+        candidates = []
+        for x in self.index[x_index]['documents']:
+            if x not in self.index[y_index]['documents']:
+                candidates.append(x)
         return candidates
 
     def XornotY(self, x, y):
         x_index = self.stemmer.stem(x.lower())
         y_index = self.stemmer.stem(y.lower())
-        candidates = list((self.allDocuments
-            - set(self.index[y_index]['documents']))
-            | set(self.index[x_index]['documents']))
+        candidates = []
+        for x in self.allDocuments:
+            if x not in self.index[y_index]['documents']:
+                candidates.append(x)
+        for y in self.index[x_index]['documents']:
+            if y not in candidates:
+                candidates.append(y)
         return candidates
 
     def skipPointerExists(self, index, skipLength, length):
