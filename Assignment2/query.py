@@ -39,14 +39,15 @@ class QueryAnswering(object):
         else:
             # Compute answer, push into cache
             response = []
-            response.append(self.dataSource.query(processedTerm, cosine=False))
-            response.append(self.dataSource.query(processedTerm, cosine=True))
+            response.append(self.dataSource.query(processedTerm, cosine=False))[:5]
+            response.append(self.dataSource.query(processedTerm, cosine=True))[:5]
             self.pushCache(processedTerm, response)
             return response
 
 
 if __name__ == "__main__":
-    wa = QueryAnswering(tf_idf_index,20)
+    tfidf = TfIdf(sys.argv[1], "index.html", 0.75)
+    wa = QueryAnswering(tfidf, 20)
     while True:
         query = input()
         answer_a, answer_b = wa.answerQuery(query)

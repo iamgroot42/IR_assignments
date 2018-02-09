@@ -1,12 +1,16 @@
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
 from num2words import num2words
 import string
 
 # Download relevant data
 nltk.download('stopwords')
 nltk.download('punkt')
+
+# Port Stemmer
+STEMMER = PorterStemmer()
 
 def maybeMakeIntoWord(text):
     tbc = text.replace(',','')
@@ -36,6 +40,8 @@ def processText(text):
     validTokens = [x for x in validTokens if len(x) > 1]
     # Remove words with special characters in them, remove special chars
     validTokens = [stripSpecialCharacters(x) for x in validTokens]
+    # Stem words
+    validTokens = [STEMMER.stem(x) for x in validTokens]
     return validTokens
 
 # Read all files
@@ -49,6 +55,16 @@ def readFile(filePath):
         return None
 
 
-if __name__ == "__main__":
-    import sys
-    print(readFile(sys.argv[1]))
+def extractFileTitles(filename):
+    titleMapping = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            if "<TR VALIGN=TOP><TD ALIGN=TOP>" in line:
+                procText = line.rstrip()
+                procText = procText[len("<TR VALIGN=TOP><TD ALIGN=TOP>"):]
+                procText = procText[procText.find(">")+1:]
+                filename = procText[:procText.find("<")]
+                procText = procText[procText.find("</A>  <tab to=T><TD> ") + len("</A>  <tab to=T><TD> "):]
+                title = procText[procText.find("<TD> ") + len(("<TD> ")):]
+                titleMapping[filename] = title
+    return titleMapping
