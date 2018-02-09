@@ -29,10 +29,11 @@ class QueryAnswering(object):
 
     def answerQuery(self, queryTerm):
         processedTerm = preprocess.processText(queryTerm)
-        processedTerm = self.spellCorrect(processedTerm)
-        #Check if query exists in cache
+        processedTerm = [self.spellCorrect(x) for x in processedTerm]
+        processedTerm = ' '.join(processedTerm)
+        # Check if query exists in cache
         cachedEntry = self.maybeFetchFromCache(processedTerm)
-        Return from cache if exists
+        # Return from cache if exists
         if cachedEntry:
             print("Fetched from Cache")
             return cachedEntry
@@ -46,8 +47,9 @@ class QueryAnswering(object):
 
 
 if __name__ == "__main__":
-    tfidf = TfIdf(sys.argv[1], "index.html", 0.75)
+    import sys
+    tfidf = tf_idf.TfIdf(sys.argv[1], "index.html", 0.75)
     wa = QueryAnswering(tfidf, 20)
     while True:
-        query = input()
+        query = input("Enter query: ")
         answer_a, answer_b = wa.answerQuery(query)
