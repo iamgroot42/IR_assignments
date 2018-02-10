@@ -22,7 +22,7 @@ class TfIdf(object):
         self.precompute_doc_vectors()
 
     def preprocessData(self, dataDir):
-        for docFile in tqdm(os.listdir(dataDir)[:10]):
+        for docFile in tqdm(os.listdir(dataDir)):
             if not os.path.isdir(os.path.join(dataDir,docFile)):
                 processedFile = preprocess.readFile(os.path.join(dataDir,docFile))
                 words = Counter(processedFile)
@@ -70,15 +70,15 @@ class TfIdf(object):
             termFreq = Counter(term)
             for word in self.vocabulary:
                 tfScore = self.tf_weight(termFreq.get(word, 0))
-                idf_score = self.idf_weight(self.wordFrequencies[word])
+                idf_score = self.idf_weight(self.wordFrequencies.get(word,0))
                 contentScore = tfScore * idf_score
                 query_vector.append(contentScore)
-            for docName, docVector in self.documentVectors:
+            for docName, docVector in self.documentVectors.items():
                 docScores[docName] = 1 - spatial.distance.cosine(docVector, query_vector)
         else:
             for word in indiTerms:
                 # IDFCOUNT -> via inverted list
-                idf_score = self.idf_weight(self.wordFrequencies[word])
+                idf_score = self.idf_weight(self.wordFrequencies.get(word,0))
                 titleIdf_score = self.idf_weight(self.titlewordFrequencies.get(word, 0))
                 for docName, doc in self.documents.items():
                     tfScore = self.tf_weight(doc.get(word, 0))
@@ -89,5 +89,5 @@ class TfIdf(object):
                         titletfScore = 0
                     titleScore = titletfScore * titleIdf_score
                     docScores[docName] += self.titleRatio * contentScore + (1 - self.titleRatio) * titleScore
-        retrievedDocuments = sorted(dict1, key=docScores.get, reverse=True)
+        retrievedDocuments = sorted(docScores, key=docScores.get, reverse=True)
         return retrievedDocuments
