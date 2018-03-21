@@ -7,33 +7,26 @@ import os
 
 
 class TfIdf(object):
-    def __init__(self, dataDir, indexFile):
-        self.dataDir = dataDir
-        self.documents = {}
-        self.titles = {}
+    def __init__(self, baseDir, docs, ratio):
         self.wordFrequencies = {}
-        self.titlewordFrequencies = {}
-        self.documentVectors = {}
+        self.documents = {}
         self.N = 0
+        self.wordFrequencies = {}
+        self.ratio = ratio
         self.vocabulary = []
-        self.fileTitles = preprocess.extractFileTitles(indexFile)
-        self.preprocessData(dataDir)
-        self.precompute_doc_vectors()
+        self.docs = docs
+        self.baseDir = baseDir
+        self.preprocessData()
 
-    def preprocessData(self, dataDir):
-        for docFile in tqdm(os.listdir(dataDir)):
-            if not os.path.isdir(os.path.join(dataDir,docFile)):
-                processedFile = preprocess.readFile(os.path.join(dataDir,docFile))
-                words = Counter(processedFile)
-                self.vocabulary = list(set(self.vocabulary) | set(words.keys()))
-                title_words = Counter(preprocess.processText(self.fileTitles[docFile]))
-                self.documents[docFile] = words
-                self.titles[docFile] = title_words
-                for uniqueWord in words.keys():
-                    self.wordFrequencies[uniqueWord] = 1 + self.wordFrequencies.get(uniqueWord, 0)
-                for uniqueWord in title_words.keys():
-                    self.titlewordFrequencies[uniqueWord] = 1 + self.titlewordFrequencies.get(uniqueWord, 0)
-                self.N += 1
+    def preprocessData(self):
+       for doc in self.docs:
+            processedFile = preprocess.readFile(os.path.join(self.baseDir, doc))
+            words = Counter(processedFile)
+            self.vocabulary = list(set(self.vocabulary) | set(words.keys()))
+            self.documents[doc] = words
+            for uniqueWord in words.keys():
+                self.wordFrequencies[uniqueWord] = 1 + self.wordFrequencies.get(uniqueWord, 0)
+            self.N += 1
 
     def tf_weight(self, tf):
         if tf > 0:
@@ -43,44 +36,15 @@ class TfIdf(object):
     def idf_weight(self, df):
         return np.log10(self.N / (df + 1))
 
-    def precompute_doc_vectors(self):
-        for docName, doc in tqdm(self.documents.items()):
-            scoreVector = []
+    def selectWords(self):
+        newVocab = []
+        for doc in self.docs:
+            scores = []
             for word in self.vocabulary:
-                tfScore = self.tf_weight(doc.get(word, 0))
+                tfScore = self.tf_weight(self.documents.get(word, 0))    
                 idf_score = self.idf_weight(self.wordFrequencies[word])
-                contentScore = tfScore * idf_score
-                scoreVector.append(contentScore)
-            self.documentVectors[docName] = scoreVector
+                scores.append(- tfScore * idf_score)
+            selection = np.argsort(scores)[:int(len(scores) * self.ratio)]
+            [newVocab.append(self.vocabulary[x]) for x in selection]
+        return set(newVocab)
 
-
-    def query(self, term, cosine):
-        retrieved = {}
-        indiTerms = term.split(' ')
-        docScores = {x:0 for x in self.documents.keys()}
-        if cosine:
-            query_vector = []
-            termFreq = Counter(term)
-            for word in self.vocabulary:
-                tfScore = self.tf_weight(termFreq.get(word, 0))
-                idf_score = self.idf_weight(self.wordFrequencies.get(word,0))
-                contentScore = tfScore * idf_score
-                query_vector.append(contentScore)
-            for docName, docVector in self.documentVectors.items():
-                docScores[docName] = 1 - spatial.distance.cosine(docVector, query_vector)
-        else:
-            for word in indiTerms:
-                # IDFCOUNT -> via inverted list
-                idf_score = self.idf_weight(self.wordFrequencies.get(word,0))
-                titleIdf_score = self.idf_weight(self.titlewordFrequencies.get(word, 0))
-                for docName, doc in self.documents.items():
-                    tfScore = self.tf_weight(doc.get(word, 0))
-                    contentScore = tfScore * idf_score
-                    if self.titles.get(docName, None):
-                        titletfScore = self.tf_weight(self.titles[docName].get(word, 0))
-                    else:
-                        titletfScore = 0
-                    titleScore = titletfScore * titleIdf_score
-                    docScores[docName] += self.titleRatio * contentScore + (1 - self.titleRatio) * titleScore
-        retrievedDocuments = sorted(docScores, key=docScores.get, reverse=True)
-        return retrievedDocuments
