@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, accuracy_score
 
 
 class Bayes(object):
@@ -47,18 +47,12 @@ class Bayes(object):
         argMaxpredictions = []
         predictions = self.predict(X)
         for p in predictions:
-            argMaxpredictions.append(np.argmax(p))
+            argMaxpredictions.append(np.argmin(p))
         Y_ = [ self.classes[y] for y in Y]
         return (argMaxpredictions, Y_)
-
-    def getSingletonProbs(self, Y):
-        Y_ = []
-        for p in Y:
-            Y_.append(np.max(p))
-        return Y_
 
     def getConfusionMatrix(self, X, Y):
         (argMaxpredictions, Y_) = self.getModifiedPredictions(X, Y)
         cm = confusion_matrix(Y_, argMaxpredictions)
-        return cm
+        return cm, accuracy_score(Y, argMaxpredictions)
 

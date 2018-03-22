@@ -10,6 +10,7 @@ import preprocess
 parser = argparse.ArgumentParser()
 parser.add_argument("testratio", type=float, help="percentage of data to be used for testing")
 parser.add_argument("datapath", type=str, help="path to folder containint training data")
+parser.add_argument("keepratio", type=float, help="ratio of features to use, scored by tf-idf")
 
 
 def load_data(dirFolder, testRatio, featureKeepRatio=1.0):
@@ -48,9 +49,10 @@ def load_data(dirFolder, testRatio, featureKeepRatio=1.0):
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    (X_train, Y_train), (X_test, Y_test) = load_data(args.datapath, args.testratio)
-    print(len(X_train), len(X_train[0]), len(Y_train), Y_train[0])
+    (X_train, Y_train), (X_test, Y_test) = load_data(args.datapath, args.testratio, args.keepratio)
+    print("Vocabulary size:", len(X_train[0]))
     baCl = Bayes()
     baCl.train(X_train, Y_train)
-    confMatrix = baCl.getConfusionMatrix(X_test, Y_test)
+    confMatrix, acc = baCl.getConfusionMatrix(X_test, Y_test)
     print(confMatrix)
+    print("Accuracy:", acc)
