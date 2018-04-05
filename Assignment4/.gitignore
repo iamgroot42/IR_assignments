@@ -1,0 +1,3 @@
+20_newsgroups/*
+*.pyc
+__pycache__/*
