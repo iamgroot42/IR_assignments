@@ -62,6 +62,7 @@ def KM(X_train, Y_train, X_test, Y_test, k):
 if __name__ == "__main__":
 	args = parser.parse_args()
 	(X_train, Y_train), (X_test, Y_test) = load_data(args.datapath, args.testratio, args.keepratio)
+	print(X_train.shape[1], "vocab size")
 	X_train = [x/np.linalg.norm(x) for x in X_train]
 	X_test = [x/np.linalg.norm(x) for x in X_test]
 	X_centroid, Y_centroid = [], []

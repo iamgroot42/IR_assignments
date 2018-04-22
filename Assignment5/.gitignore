@@ -1,0 +1,4 @@
+__pycache__/*
+*.pyc
+20_newsgroups/*
+*.bin
