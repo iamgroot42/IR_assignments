@@ -2,7 +2,7 @@ autocorrect==0.3.0
 beautifulsoup4==4.6.0
 cycler==0.10.0
 matplotlib==2.1.1
-nltk==3.2.5
+nltk==3.4.5
 num2words==0.5.6
 numpy==1.14.0
 Pillow==5.0.0
